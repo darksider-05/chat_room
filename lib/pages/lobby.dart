@@ -68,7 +68,7 @@ class ServerList extends StatelessWidget {
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     child: Container(
-                      width: truewidth * 0.6,
+                      width: truewidth * 0.3,
                       height: trueheight * 0.15,
                       decoration: BoxDecoration(
                         color: Colors.purple,
@@ -76,8 +76,11 @@ class ServerList extends StatelessWidget {
                       ),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(
-                          "${host.hosts[index]["ip"]}:${host.hosts[index]["port"]}",
+                        child: Padding(
+                          padding: const EdgeInsets.only(left:8.0),
+                          child: Text(
+                            "${host.hosts[index]["ip"]}:${host.hosts[index]["port"]}",
+                          ),
                         ),
                       ),
                     ),

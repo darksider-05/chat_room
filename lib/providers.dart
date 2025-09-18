@@ -17,7 +17,7 @@ void changepage(int target){
 
 
 class Server extends ChangeNotifier{
-  List<String> history = ['', "whjsdf", "dsfdfsdfdsdfsddsdfsdfdsdsdsfdfs"];
+  List<String> history = [];
   List<Socket> clients = [];
   List<Map> hosts = [];
 
