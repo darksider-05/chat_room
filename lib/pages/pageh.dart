@@ -6,6 +6,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../providers.dart';
 
@@ -17,89 +21,99 @@ class PageH extends StatefulWidget {
 }
 
 class _PageHState extends State<PageH> {
-  @override
-  void initState() {
-    super.initState();
-    final host = context.read<Server>();
-    final general = context.read<General>();
-    starthost(host, general);
-  }
+  HttpServer? _httpserver;
+  RawDatagramSocket? _udpserver;
+  StreamSubscription? _broadcastudp;
+
+  final List<WebSocketChannel> _clients = [];
+
 
   @override
   void dispose() {
-    final host = context.read<Server>();
-    for (Socket c in host.clients) {
-      c.destroy();
+    for (final client in _clients) {
+      client.sink.close();
     }
-    host.clients.clear();
-    _server?.close();
+
+
+    _httpserver?.close(force: true);
     _udpserver?.close();
     _broadcastudp?.cancel();
     super.dispose();
   }
 
-  ServerSocket? _server;
-  RawDatagramSocket? _udpserver;
-  StreamSubscription? _broadcastudp;
 
-  // ✨ Helper function to broadcast updates to all clients
-  void _broadcastHistory(Server host) {
-    // Add a newline character for data framing
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    final host = context.read<Host>();
+    final general = context.read<General>();
+    starthost(host, general);
+  }
+
+
+
+
+
+
+
+  void _broadcastHistory(Host host) {
+
     final message =
-        json.encode({"hint": "update", "content": host.history}) + '\n';
-    for (Socket c in host.clients) {
-      try {
-        c.write(message);
-        c.flush(); // Ensure data is sent immediately
-      } catch (e) {
-        // Handle error if a client socket is dead
-        print("Error writing to client: $e");
-      }
+        json.encode({"hint": "update", "content": host.history});
+    for (final client in _clients) {
+
+        client.sink.add(message);
+
     }
   }
 
-  void starthost(Server host, General general) async {
+  void starthost(Host host, General general) async {
     try {
       var selfip = await NetworkInfo().getWifiIP() ?? "0.0.0.0";
-      _server = await ServerSocket.bind(InternetAddress.anyIPv4, 2021);
+      // 1. Define the handler for WebSocket connections
+      final handler = webSocketHandler((WebSocketChannel channel, _) {
+        // A new client has connected!
+        setState(() {
+          _clients.add(channel);
+        });
 
-      _server!.listen((client) {
-        host.clients.add(client);
+        // Send the current chat history to the new client
+        final initialMessage = json.encode({"hint": "update", "content": host.history});
+        channel.sink.add(initialMessage);
 
-        // Send initial history to the new client
-        final initialMessage =
-            json.encode({"hint": "update", "content": host.history}) + '\n';
-        client.write(initialMessage);
-        client.flush();
+        channel.stream.listen(
+                (message) {
+              final decoded = jsonDecode(message);
+              if (decoded["hint"] == "submit") {
+                host.add(decoded["content"]);
+                _broadcastHistory(host); // Broadcast the new history to all
+              }
+            },
 
-        // ✨ Use LineSplitter to handle incoming data correctly
-        utf8.decoder
-            .bind(client)
-            .transform(const LineSplitter())
-            .listen(
-              (line) {
-                try {
-                  var decoded = jsonDecode(line);
-                  if (decoded["hint"] == "submit") {
-                    host.history.add(decoded["content"]);
-                    _broadcastHistory(host); // Broadcast the new history to all
-                  }
-                } catch (e) {
-                  print("Error decoding client message: $e");
-                }
-              },
-              onDone: () {
-                host.clients.remove(client);
-                host.history.add("one left");
-                _broadcastHistory(host);
-              },
-              onError: (error) {
-                host.clients.remove(client);
-              },
-            );
+            // 3. Handle the client disconnecting
+            onDone: () {
+              setState(() {
+                _clients.remove(channel);
+              });
+              host.add("one left");
+              _broadcastHistory(host);
+            },
+            onError: (error) {
+              // Handle errors and remove the client
+              setState(() {
+                _clients.remove(channel);
+              });
+            }
+        );
       });
+      // 4. Create a pipeline and start the server
+      final pipeline = const Pipeline().addHandler(handler);
+      _httpserver = await shelf_io.serve(pipeline, InternetAddress.anyIPv4, 2021);
 
-      _udpserver = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+          _udpserver = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       _udpserver!.broadcastEnabled = true;
       final broadcastaddress = InternetAddress("255.255.255.255");
 
@@ -107,7 +121,7 @@ class _PageHState extends State<PageH> {
         final announcement = jsonEncode({
           "hint": "discovery",
           "ip": selfip,
-          "port": _server!.port,
+          "port": _httpserver!.port,
         });
         _udpserver!.send(utf8.encode(announcement), broadcastaddress, 2120);
       });
@@ -126,7 +140,7 @@ class _PageHState extends State<PageH> {
     var trueheight = isver ? height : width;
     final general = context.watch<General>();
     final nav = context.watch<PageIndex>();
-    final host = context.watch<Server>();
+    final host = context.watch<Host>();
 
     return Stack(
       children: [
@@ -186,7 +200,7 @@ class _PageHState extends State<PageH> {
                           if (general.tec.text.isNotEmpty) {
                             host.add(general.tec.text);
                             _broadcastHistory(host); // Broadcast the update
-                            general.update(""); // Clear the text field
+                            general.cleantec(); // Clear the text field
                           }
                         },
                       ),
@@ -204,7 +218,6 @@ class _PageHState extends State<PageH> {
           child: GestureDetector(
             onTap: () {
               nav.changepage(0);
-              general.update("");
             },
             child: Container(
               width: min(width, height) / 10,

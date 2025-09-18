@@ -11,42 +11,43 @@ import '../providers.dart';
 class ServerList extends StatelessWidget {
   const ServerList({super.key});
 
-  void scout(Server host, General general) async {
+  void scout(Host host, General general) async {
     general.setbusy(true);
     host.hosts.clear();
-    try{
-    RawDatagramSocket udplistener = await RawDatagramSocket.bind(
-      InternetAddress.anyIPv4,
-      2120,
-      reuseAddress: true,
-      reusePort: true,
-    );
-    udplistener.broadcastEnabled = true;
+    try {
+      RawDatagramSocket udplistener = await RawDatagramSocket.bind(
+        InternetAddress.anyIPv4,
+        2120,
+        reuseAddress: true,
+        reusePort: true,
+      );
+      udplistener.broadcastEnabled = true;
 
-    udplistener.listen((event) {
-      if (event == RawSocketEvent.read) {
-        final datagram = udplistener.receive();
-        if (datagram != null) {
-          final message = utf8.decode(datagram.data);
-          final decoded = jsonDecode(message);
-          if (decoded["hint"] == "discovery") {
-            host.discovered(decoded["ip"], decoded["port"]);
+      udplistener.listen((event) {
+        if (event == RawSocketEvent.read) {
+          final datagram = udplistener.receive();
+          if (datagram != null) {
+            final message = utf8.decode(datagram.data);
+            final decoded = jsonDecode(message);
+            if (decoded["hint"] == "discovery") {
+              host.discovered(decoded["ip"], decoded["port"]);
+            }
           }
         }
-      }
-    });
+      });
 
-    Future.delayed(Duration(seconds: 2), () {
-      udplistener.close();
-      general.setbusy(false);
-    });
-  }catch(e){}}
+      Future.delayed(Duration(seconds: 2), () {
+        udplistener.close();
+        general.setbusy(false);
+      });
+    } catch (e) {}
+  }
 
   @override
   Widget build(BuildContext context) {
     final general = context.watch<General>();
     final nav = context.watch<PageIndex>();
-    final host = context.watch<Server>();
+    final host = context.watch<Host>();
 
     var width = MediaQuery.of(context).size.shortestSide;
     var height = MediaQuery.of(context).size.longestSide;
@@ -56,7 +57,6 @@ class ServerList extends StatelessWidget {
 
     return Stack(
       children: [
-
         Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -66,33 +66,36 @@ class ServerList extends StatelessWidget {
               child: ListView.builder(
                 itemCount: host.hosts.length,
                 itemBuilder: (context, index) {
-                  return GestureDetector(
-                    child: Container(
-                      width: truewidth * 0.3,
-                      height: trueheight * 0.15,
-                      decoration: BoxDecoration(
-                        color: Colors.purple,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left:8.0),
-                          child: Text(
-                            "${host.hosts[index]["ip"]}:${host.hosts[index]["port"]}",
+                  return Center(
+                    child: GestureDetector(
+                      child: Container(
+                        width: truewidth * 0.5,
+                        height: trueheight * 0.1,
+                        decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Text(
+                              "${host.hosts[index]["ip"]}:${host.hosts[index]["port"]}",
+                              style: TextStyle(fontSize: 17),
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    onTap: () {
-                      general.getserver(
-                        host.hosts[index]["ip"],
-                        host.hosts[index]["port"],
-                      );
-                      host.hosts.clear();
-                      nav.changepage(3);
-                    },
+                      onTap: () {
+                        general.getserver(
+                          host.hosts[index]["ip"],
+                          host.hosts[index]["port"],
+                        );
+                        host.hosts.clear();
+                        nav.changepage(3);
+                      },
+                    ),
                   );
                 },
               ),
@@ -108,7 +111,7 @@ class ServerList extends StatelessWidget {
                           scout(host, general);
                         }
                         : null,
-                label: Text("Refresh", style: TextStyle(fontSize: 17),),
+                label: Text("Refresh", style: TextStyle(fontSize: 17)),
               ),
             ),
           ],
@@ -126,7 +129,7 @@ class ServerList extends StatelessWidget {
               height: min(width, height) / 10,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color:Colors.black12,
+                color: Colors.black12,
               ),
               child: Center(
                 child: Icon(Icons.arrow_back_outlined, color: Colors.black45),

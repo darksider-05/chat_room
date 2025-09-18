@@ -1,6 +1,5 @@
 
 
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -16,9 +15,8 @@ void changepage(int target){
 }
 
 
-class Server extends ChangeNotifier{
+class Host extends ChangeNotifier{
   List<String> history = [];
-  List<Socket> clients = [];
   List<Map> hosts = [];
 
 
@@ -53,7 +51,12 @@ class General extends ChangeNotifier{
     error = e;
     notifyListeners();
   }
-  void update(String newText) {
+
+  void cleantec (){
+    tec.text = "";
+    notifyListeners();
+  }
+  void update(String text) {
     notifyListeners();
   }
 

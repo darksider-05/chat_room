@@ -37,6 +37,9 @@ dependencies:
   provider: ^6.1.5+1
   udp: ^5.0.3
   network_info_plus: ^7.0.0
+  web_socket_channel: ^3.0.3
+  shelf: ^1.4.2
+  shelf_web_socket: ^3.0.0
 
 dev_dependencies:
   flutter_test:

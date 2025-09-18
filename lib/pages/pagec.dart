@@ -1,9 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../providers.dart';
 
@@ -15,12 +16,12 @@ class PageC extends StatefulWidget {
 }
 
 class _PagecState extends State<PageC> {
-  Socket? clsocket;
+  WebSocketChannel? _channel;
 
   @override
   void initState() {
     super.initState();
-    final host = context.read<Server>();
+    final host = context.read<Host>();
     final general = context.read<General>();
     final nav = context.read<PageIndex>();
     startclient(host, general, nav);
@@ -28,64 +29,53 @@ class _PagecState extends State<PageC> {
 
   @override
   void dispose() {
-    // Gracefully disconnect when leaving the page
-    try {
-      final terminateMessage = jsonEncode({"hint": "terminate"}) + '\n';
-      clsocket?.write(terminateMessage);
-      clsocket?.flush();
-      clsocket?.destroy();
-    } catch (e) {
-      print("Error on dispose: $e");
-    }
+    _channel?.sink.close();
     super.dispose();
   }
 
-  void startclient(Server host, General general, PageIndex nav) async {
+  void startclient(Host host, General general, PageIndex nav) async {
     try {
-      clsocket = await Socket.connect(general.current["ip"], general.current["port"], timeout: Duration(seconds: 5));
+      final ip = general.current["ip"];
+      final port = general.current["port"];
 
-      // ✨ Use LineSplitter to correctly handle incoming messages
-      utf8.decoder.bind(clsocket!).transform(const LineSplitter()).listen((line) {
-        try {
-          final decoded = json.decode(line);
-          if (decoded["hint"] == "update") {
-            // ✨ FIX: Cast the incoming list to the correct type
-            final historyList = (decoded["content"] as List).cast<String>();
-            host.sethistory(historyList);
+      // 1. Connect using the 'ws://' URI scheme
+      _channel = IOWebSocketChannel.connect('ws://$ip:$port');
+      // 2. Listen for messages from the server
+      _channel?.stream.listen(
+              (message) {
+            final decoded = json.decode(message);
+            if (decoded["hint"] == "update") {
+              final historyList = (decoded["content"] as List).cast<String>();
+              host.sethistory(historyList);
+            }
+          },
+          onDone: () {
+            general.seterror("Host disconnected.");
+            nav.changepage(2);
+          },
+          onError: (error) {
+            general.seterror("Connection Error: ${error.toString()}");
+            nav.changepage(2);
           }
-        } catch (e) {
-          // This can happen if a malformed JSON is received
-          print("Error decoding server message: $e");
-        }
-      }, onDone: () {
-        general.seterror("Host disconnected.");
-        nav.changepage(2);
-      }, onError: (error) {
-        general.seterror("Connection Error: ${error.toString()}");
-        nav.changepage(2);
-      });
+      );
 
     } catch (e) {
-      // ✨ Use your error provider to show errors to the user
-      general.seterror("Connection Failed: ${e.toString()}");
-      nav.changepage(2); // Go back if connection fails
+      general.seterror("Failed to connect: ${e.toString()}");
+      nav.changepage(2);
     }
   }
 
   void _sendMessage() {
     final general = context.read<General>();
-    if (general.tec.text.isEmpty || clsocket == null) return;
+    if (general.tec.text.isEmpty || _channel == null) return;
 
-    try {
-      // Add a newline character for data framing
-      final message = jsonEncode({"hint": "submit", "content": general.tec.text}) + '\n';
-      clsocket?.write(message);
-      clsocket?.flush(); // Ensure data is sent immediately
-      general.update(""); // Clear the text field
-    } catch (e) {
-      general.seterror("Failed to send message: ${e.toString()}");
-    }
+    // 3. Send a message - it's this simple!
+    final message = jsonEncode({"hint": "submit", "content": general.tec.text});
+    _channel?.sink.add(message);
+
+    general.cleantec(); // Clear the text field
   }
+
 
 
 
@@ -101,7 +91,7 @@ class _PagecState extends State<PageC> {
     var trueheight = isver ? height : width;
     final general = context.watch<General>();
     final nav = context.watch<PageIndex>();
-    final host = context.watch<Server>();
+    final host = context.watch<Host>();
 
 
     return Stack(
@@ -222,8 +212,6 @@ class _PagecState extends State<PageC> {
           child: GestureDetector(
             onTap: () {
               nav.changepage(2);
-              clsocket?.write(utf8.encode(jsonEncode({"hint":"terminate"}) + "\n"));
-              clsocket?.flush();
             },
             child: Container(
               width: min(width, height) / 10,

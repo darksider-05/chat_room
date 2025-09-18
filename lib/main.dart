@@ -12,7 +12,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => PageIndex()),
         ChangeNotifierProvider(create: (_) => General()),
-        ChangeNotifierProvider(create: (_) => Server()),
+        ChangeNotifierProvider(create: (_) => Host()),
       ],
       child: Mt(),
     ),
