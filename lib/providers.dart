@@ -2,7 +2,7 @@
 
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 
 class PageIndex extends ChangeNotifier{
@@ -47,8 +47,12 @@ class General extends ChangeNotifier{
   TextEditingController tec = TextEditingController();
   bool busy = false;
   Map current = {};
+  String error = "";
 
-
+  void seterror(String e){
+    error = e;
+    notifyListeners();
+  }
   void update(String newText) {
     tec.text = newText;
     notifyListeners();
@@ -66,3 +70,5 @@ class General extends ChangeNotifier{
 
   bool get isEmpty => tec.text.isEmpty;
 }
+
+

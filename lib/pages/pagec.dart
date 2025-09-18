@@ -41,7 +41,9 @@ class _PagecState extends State<PageC> {
       general.current.clear();
       nav.changepage(2);
     });
-  }catch(e){}}
+  }catch(e){
+      general.seterror(e.toString());
+    }}
 
 
   @override
@@ -157,6 +159,7 @@ class _PagecState extends State<PageC> {
                             : Container(),
                         onTap: (){
                           clsocket?.write(utf8.encode(jsonEncode({"hint":"submit", "content":general.tec.text})));
+                          general.update("");
                         },
                       ),
                     ),
@@ -189,6 +192,16 @@ class _PagecState extends State<PageC> {
             ),
           ),
         ),
+
+
+          general.error != ""?Container(
+          color: Colors.grey,
+    width: MediaQuery.of(context).size.width,
+    height: MediaQuery.of(context).size.height,
+    child: Center(
+    child: Text(general.error),
+    ),
+    ):Container()
       ],
     );
   }

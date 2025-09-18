@@ -36,7 +36,7 @@ class ServerList extends StatelessWidget {
       }
     });
 
-    Future.delayed(Duration(milliseconds: 1500), () {
+    Future.delayed(Duration(seconds: 2), () {
       udplistener.close();
       general.setbusy(false);
     });

@@ -27,8 +27,9 @@ class _PageHState extends State<PageH> {
   void initState() {
     super.initState();
     final host = context.read<Server>();
+    final general = context.read<General>();
 
-    starthost(host);
+    starthost(host, general);
   }
 
 
@@ -55,7 +56,7 @@ class _PageHState extends State<PageH> {
   StreamSubscription? _broadcastudp;
 
 
-  void starthost(Server host) async {
+  void starthost(Server host, General general) async {
     var selfip = await NetworkInfo().getWifiIP() ?? "0.0.0.0";
     try{
     _server = await ServerSocket.bind(InternetAddress.anyIPv4, 2021);
@@ -74,6 +75,7 @@ class _PageHState extends State<PageH> {
           }
         } else if (decoded["hint"] == "terminate") {
           host.clients.remove(client);
+          host.history.add("one left");
           client.close();
         }
       });
@@ -95,7 +97,9 @@ class _PageHState extends State<PageH> {
 
       _udpserver!.send(utf8.encode(announcement), broadcastaddress, 2120);
     });
-  }catch(e){}}
+  }catch(e){
+      general.seterror(e.toString());
+    }}
 
 
 
@@ -251,6 +255,16 @@ class _PageHState extends State<PageH> {
             ),
           ),
         ),
+
+        general.error != ""?Container(
+          color: Colors.grey,
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: Center(
+            child: Text(general.error),
+          ),
+        ):Container()
+
       ],
     );
   }
