@@ -56,26 +56,7 @@ class ServerList extends StatelessWidget {
 
     return Stack(
       children: [
-        Positioned(
-          top: trueheight * 7 / 100 + 10,
-          left: 15,
-          child: GestureDetector(
-            onTap: () {
-              nav.changepage(0);
-            },
-            child: Container(
-              width: min(width, height) / 10,
-              height: min(width, height) / 10,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color:Colors.black12,
-              ),
-              child: Center(
-                child: Icon(Icons.arrow_back_outlined, color: Colors.black45),
-              ),
-            ),
-          ),
-        ),
+
         Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -117,19 +98,38 @@ class ServerList extends StatelessWidget {
             SizedBox(
               height: trueheight * 0.1,
               width: truewidth * 0.5,
-              child: FittedBox(
-                child: FloatingActionButton(
-                  onPressed:
-                      !(general.busy)
-                          ? () {
-                            scout(host, general);
-                          }
-                          : null,
-                  child: Text("Refresh", style: TextStyle(fontSize: 20)),
-                ),
+              child: FloatingActionButton.extended(
+                onPressed:
+                    !(general.busy)
+                        ? () {
+                          scout(host, general);
+                        }
+                        : null,
+                label: Text("Refresh", style: TextStyle(fontSize: 17),),
               ),
             ),
           ],
+        ),
+
+        Positioned(
+          top: trueheight * 7 / 100 + 10,
+          left: 15,
+          child: GestureDetector(
+            onTap: () {
+              nav.changepage(0);
+            },
+            child: Container(
+              width: min(width, height) / 10,
+              height: min(width, height) / 10,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color:Colors.black12,
+              ),
+              child: Center(
+                child: Icon(Icons.arrow_back_outlined, color: Colors.black45),
+              ),
+            ),
+          ),
         ),
       ],
     );

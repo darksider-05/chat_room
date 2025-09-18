@@ -117,28 +117,7 @@ class _PageHState extends State<PageH> {
 
     return Stack(
       children: [
-        // back button
-        Positioned(
-          top: trueheight * 7 / 100 + 10,
-          left: 15,
-          child: GestureDetector(
-            onTap: () {
-              nav.changepage(0);
-              general.update("");
-            },
-            child: Container(
-              width: min(width, height) / 10,
-              height: min(width, height) / 10,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Colors.black12
-              ),
-              child: Center(
-                child: Icon(Icons.arrow_back_outlined, color: Colors.black45),
-              ),
-            ),
-          ),
-        ),
+
 
         // main part
         Container(
@@ -248,6 +227,28 @@ class _PageHState extends State<PageH> {
                   ],
                 ),
               ],
+            ),
+          ),
+        ),
+        // back button
+        Positioned(
+          top: trueheight * 7 / 100 + 10,
+          left: 15,
+          child: GestureDetector(
+            onTap: () {
+              nav.changepage(0);
+              general.update("");
+            },
+            child: Container(
+              width: min(width, height) / 10,
+              height: min(width, height) / 10,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.black12
+              ),
+              child: Center(
+                child: Icon(Icons.arrow_back_outlined, color: Colors.black45),
+              ),
             ),
           ),
         ),
