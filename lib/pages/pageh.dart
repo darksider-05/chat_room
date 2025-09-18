@@ -127,10 +127,11 @@ class _PageHState extends State<PageH> {
               general.update("");
             },
             child: Container(
-              width: min(width, height) / 50,
-              height: min(width, height) / 50,
+              width: min(width, height) / 10,
+              height: min(width, height) / 10,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
+                color: Colors.black12
               ),
               child: Center(
                 child: Icon(Icons.arrow_back_outlined, color: Colors.black45),

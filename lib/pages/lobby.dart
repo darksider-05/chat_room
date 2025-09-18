@@ -17,7 +17,7 @@ class ServerList extends StatelessWidget {
     try{
     RawDatagramSocket udplistener = await RawDatagramSocket.bind(
       InternetAddress.anyIPv4,
-      2021,
+      2120,
       reuseAddress: true,
       reusePort: true,
     );
@@ -64,10 +64,11 @@ class ServerList extends StatelessWidget {
               nav.changepage(0);
             },
             child: Container(
-              width: min(width, height) / 50,
-              height: min(width, height) / 50,
+              width: min(width, height) / 10,
+              height: min(width, height) / 10,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
+                color:Colors.black12,
               ),
               child: Center(
                 child: Icon(Icons.arrow_back_outlined, color: Colors.black45),

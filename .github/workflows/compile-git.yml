@@ -1,4 +1,4 @@
-name: Build Flutter Windows
+name: Build Flutter git
 
 on:
   push:
