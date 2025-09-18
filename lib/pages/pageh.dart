@@ -183,7 +183,6 @@ class _PageHState extends State<PageH> {
                               ? truewidth * 85 / 100
                               : truewidth * 75 / 100,
                       child: TextField(
-                        onChanged: general.update,
                         controller: general.tec,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(

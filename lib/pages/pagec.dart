@@ -124,7 +124,6 @@ class _PagecState extends State<PageC> {
                           ? truewidth * 85 / 100
                           : truewidth * 75 / 100,
                       child: TextField(
-                        onChanged: general.update,
                         controller: general.tec,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
