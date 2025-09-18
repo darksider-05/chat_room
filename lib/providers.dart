@@ -54,7 +54,6 @@ class General extends ChangeNotifier{
     notifyListeners();
   }
   void update(String newText) {
-    tec.text = newText;
     notifyListeners();
   }
 

@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 
 import '../providers.dart';
 
-
 class PageC extends StatefulWidget {
   const PageC({super.key});
 
@@ -27,23 +26,69 @@ class _PagecState extends State<PageC> {
     startclient(host, general, nav);
   }
 
-  void startclient(Server host, General general, PageIndex nav) async{
-    try{
-    clsocket = await Socket.connect(general.current["ip"], general.current["port"]);
-    clsocket?.listen((data){
-      final message = utf8.decode(data);
-      final decoded = json.decode(message);
-      if (decoded["hint"] == "update"){
-        host.sethistory(decoded["content"]);
-      }
-    }, onDone: (){
-      clsocket?.close();
-      general.current.clear();
-      nav.changepage(2);
-    });
-  }catch(e){
-      general.seterror(e.toString());
-    }}
+  @override
+  void dispose() {
+    // Gracefully disconnect when leaving the page
+    try {
+      final terminateMessage = jsonEncode({"hint": "terminate"}) + '\n';
+      clsocket?.write(terminateMessage);
+      clsocket?.flush();
+      clsocket?.destroy();
+    } catch (e) {
+      print("Error on dispose: $e");
+    }
+    super.dispose();
+  }
+
+  void startclient(Server host, General general, PageIndex nav) async {
+    try {
+      clsocket = await Socket.connect(general.current["ip"], general.current["port"], timeout: Duration(seconds: 5));
+
+      // ✨ Use LineSplitter to correctly handle incoming messages
+      utf8.decoder.bind(clsocket!).transform(const LineSplitter()).listen((line) {
+        try {
+          final decoded = json.decode(line);
+          if (decoded["hint"] == "update") {
+            // ✨ FIX: Cast the incoming list to the correct type
+            final historyList = (decoded["content"] as List).cast<String>();
+            host.sethistory(historyList);
+          }
+        } catch (e) {
+          // This can happen if a malformed JSON is received
+          print("Error decoding server message: $e");
+        }
+      }, onDone: () {
+        general.seterror("Host disconnected.");
+        nav.changepage(2);
+      }, onError: (error) {
+        general.seterror("Connection Error: ${error.toString()}");
+        nav.changepage(2);
+      });
+
+    } catch (e) {
+      // ✨ Use your error provider to show errors to the user
+      general.seterror("Connection Failed: ${e.toString()}");
+      nav.changepage(2); // Go back if connection fails
+    }
+  }
+
+  void _sendMessage() {
+    final general = context.read<General>();
+    if (general.tec.text.isEmpty || clsocket == null) return;
+
+    try {
+      // Add a newline character for data framing
+      final message = jsonEncode({"hint": "submit", "content": general.tec.text}) + '\n';
+      clsocket?.write(message);
+      clsocket?.flush(); // Ensure data is sent immediately
+      general.update(""); // Clear the text field
+    } catch (e) {
+      general.seterror("Failed to send message: ${e.toString()}");
+    }
+  }
+
+
+
 
 
   @override
@@ -126,6 +171,7 @@ class _PagecState extends State<PageC> {
                           ? truewidth * 85 / 100
                           : truewidth * 75 / 100,
                       child: TextField(
+                        controller: general.tec,
                         onChanged: general.update,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
@@ -158,8 +204,7 @@ class _PagecState extends State<PageC> {
                         )
                             : Container(),
                         onTap: (){
-                          clsocket?.write(utf8.encode(jsonEncode({"hint":"submit", "content":general.tec.text})));
-                          general.update("");
+                          _sendMessage();
                         },
                       ),
                     ),
@@ -177,7 +222,8 @@ class _PagecState extends State<PageC> {
           child: GestureDetector(
             onTap: () {
               nav.changepage(2);
-              clsocket?.write(utf8.encode(jsonEncode({"hint":"terminate"})));
+              clsocket?.write(utf8.encode(jsonEncode({"hint":"terminate"}) + "\n"));
+              clsocket?.flush();
             },
             child: Container(
               width: min(width, height) / 10,
