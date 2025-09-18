@@ -137,6 +137,14 @@ class ServerList extends StatelessWidget {
             ),
           ),
         ),
+        general.error != ""?Container(
+          color: Colors.grey,
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: Center(
+            child: Text(general.error),
+          ),
+        ):Container()
       ],
     );
   }
