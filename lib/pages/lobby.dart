@@ -50,6 +50,7 @@ class _ServerListState extends State<ServerList> {
       );
       await Future.delayed(Duration(milliseconds: 5));
     });
+    general.busy = false;
   }
 
   @override
