@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -23,10 +22,8 @@ class PageH extends StatefulWidget {
 class _PageHState extends State<PageH> {
   HttpServer? _httpserver;
   RawDatagramSocket? _udpserver;
-  StreamSubscription? _broadcastudp;
 
   final List<WebSocketChannel> _clients = [];
-
 
   @override
   void dispose() {
@@ -34,16 +31,12 @@ class _PageHState extends State<PageH> {
       client.sink.close();
     }
 
-
     _httpserver?.close(force: true);
+    _httpserver = null;
     _udpserver?.close();
-    _broadcastudp?.cancel();
+    _udpserver = null;
     super.dispose();
   }
-
-
-
-
 
   @override
   void initState() {
@@ -53,26 +46,16 @@ class _PageHState extends State<PageH> {
     starthost(host, general);
   }
 
-
-
-
-
-
-
   void _broadcastHistory(Host host) {
-
-    final message =
-        json.encode({"hint": "update", "content": host.history});
+    final message = json.encode({"hint": "update", "content": host.history});
     for (final client in _clients) {
-
-        client.sink.add(message);
-
+      client.sink.add(message);
     }
   }
 
   void starthost(Host host, General general) async {
     try {
-      var selfip = await NetworkInfo().getWifiIP() ?? "0.0.0.0";
+      final selfip = await NetworkInfo().getWifiIP() ?? "0.0.0.0";
       // 1. Define the handler for WebSocket connections
       final handler = webSocketHandler((WebSocketChannel channel, _) {
         // A new client has connected!
@@ -81,49 +64,60 @@ class _PageHState extends State<PageH> {
         });
 
         // Send the current chat history to the new client
-        final initialMessage = json.encode({"hint": "update", "content": host.history});
+        final initialMessage = json.encode({
+          "hint": "update",
+          "content": host.history,
+        });
         channel.sink.add(initialMessage);
 
         channel.stream.listen(
-                (message) {
-              final decoded = jsonDecode(message);
-              if (decoded["hint"] == "submit") {
-                host.add(decoded["content"]);
-                _broadcastHistory(host); // Broadcast the new history to all
-              }
-            },
-
-            // 3. Handle the client disconnecting
-            onDone: () {
-              setState(() {
-                _clients.remove(channel);
-              });
-              host.add("one left");
-              _broadcastHistory(host);
-            },
-            onError: (error) {
-              // Handle errors and remove the client
-              setState(() {
-                _clients.remove(channel);
-              });
+          (message) {
+            final decoded = jsonDecode(message);
+            if (decoded["hint"] == "submit") {
+              host.add(decoded["content"]);
+              _broadcastHistory(host); // Broadcast the new history to all
             }
+          },
+
+          // 3. Handle the client disconnecting
+          onDone: () {
+            setState(() {
+              _clients.remove(channel);
+            });
+            host.add("one left");
+            _broadcastHistory(host);
+          },
+          onError: (error) {
+            // Handle errors and remove the client
+            setState(() {
+              _clients.remove(channel);
+            });
+          },
         );
       });
       // 4. Create a pipeline and start the server
       final pipeline = const Pipeline().addHandler(handler);
-      _httpserver = await shelf_io.serve(pipeline, InternetAddress.anyIPv4, 2021);
+      _httpserver = await shelf_io.serve(
+        pipeline,
+        InternetAddress.anyIPv4,
+        2021,
+      );
 
-          _udpserver = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      _udpserver!.broadcastEnabled = true;
-      final broadcastaddress = InternetAddress("255.255.255.255");
-
-      _broadcastudp = Stream.periodic(Duration(seconds: 2)).listen((_) {
-        final announcement = jsonEncode({
-          "hint": "discovery",
-          "ip": selfip,
-          "port": _httpserver!.port,
-        });
-        _udpserver!.send(utf8.encode(announcement), broadcastaddress, 2120);
+      _udpserver = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 2022);
+      _udpserver?.listen((event) {
+        if (event == RawSocketEvent.read) {
+          final dg = _udpserver?.receive();
+          if (dg != null) {
+            final msg = utf8.decode(dg.data);
+            if (msg == "ping") {
+              _udpserver?.send(
+                utf8.encode("pong|$selfip"),
+                dg.address,
+                dg.port,
+              );
+            }
+          }
+        }
       });
     } catch (e) {
       // ✨ Use your error provider to show errors to the user
@@ -136,7 +130,7 @@ class _PageHState extends State<PageH> {
     var width = MediaQuery.of(context).size.shortestSide;
     var height = MediaQuery.of(context).size.longestSide;
     bool isver = MediaQuery.of(context).orientation == Orientation.portrait;
-    var truewidth = isver ? width : height;
+    //var truewidth = isver ? width : height;
     var trueheight = isver ? height : width;
     final general = context.watch<General>();
     final nav = context.watch<PageIndex>();

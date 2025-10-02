@@ -1,46 +1,62 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../providers.dart';
 
-class ServerList extends StatelessWidget {
-  const ServerList({super.key});
+class ServerList extends StatefulWidget {
+  ServerList({super.key});
 
-  void scout(Host host, General general) async {
-    general.setbusy(true);
-    host.hosts.clear();
-    try {
-      RawDatagramSocket udplistener = await RawDatagramSocket.bind(
-        InternetAddress.anyIPv4,
-        2120,
-        reuseAddress: true,
-        reusePort: true,
-      );
-      udplistener.broadcastEnabled = true;
+  @override
+  State<ServerList> createState() => _ServerListState();
+}
 
-      udplistener.listen((event) {
-        if (event == RawSocketEvent.read) {
-          final datagram = udplistener.receive();
-          if (datagram != null) {
-            final message = utf8.decode(datagram.data);
-            final decoded = jsonDecode(message);
-            if (decoded["hint"] == "discovery") {
-              host.discovered(decoded["ip"], decoded["port"]);
-            }
+class _ServerListState extends State<ServerList> {
+  RawDatagramSocket? _udpclient;
+
+  void start(Host host) async {
+    _udpclient = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+    _udpclient?.listen((event) {
+      if (event == RawSocketEvent.read) {
+        final dg = _udpclient?.receive();
+        if (dg != null) {
+          final msg = utf8.decode(dg.data);
+          final lst = msg.split("|").toList();
+          if (lst[0] == "pong") {
+            final target = lst[1];
+            host.discovered(target, 2021);
           }
         }
-      });
+      }
+    });
+  }
 
-      Future.delayed(Duration(seconds: 2), () {
-        udplistener.close();
-        general.setbusy(false);
-      });
-    } catch (e) {}
+  Future<void> scout(General general) async {
+    general.busy = true;
+    final selfip = await NetworkInfo().getWifiIP() ?? "0.0.0.0";
+    var iplist = selfip.split(".").toList();
+    iplist = iplist.sublist(0, 3);
+    final subnet = iplist.join(".");
+
+    await Future.forEach<int>(List.generate(254, (i) => i + 1), (sub) async {
+      _udpclient?.send(
+        utf8.encode("ping"),
+        InternetAddress("$subnet.$sub"),
+        2022,
+      );
+      await Future.delayed(Duration(milliseconds: 5));
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final host = context.read<Host>();
+    start(host);
   }
 
   @override
@@ -108,7 +124,7 @@ class ServerList extends StatelessWidget {
                 onPressed:
                     !(general.busy)
                         ? () {
-                          scout(host, general);
+                          scout(general);
                         }
                         : null,
                 label: Text("Refresh", style: TextStyle(fontSize: 17)),
@@ -137,14 +153,14 @@ class ServerList extends StatelessWidget {
             ),
           ),
         ),
-        general.error != ""?Container(
-          color: Colors.grey,
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height,
-          child: Center(
-            child: Text(general.error),
-          ),
-        ):Container()
+        general.error != ""
+            ? Container(
+              color: Colors.grey,
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              child: Center(child: Text(general.error)),
+            )
+            : Container(),
       ],
     );
   }
