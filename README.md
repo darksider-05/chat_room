@@ -9,7 +9,7 @@ A Flutter app for chatting with others over a **local area network**—no intern
 - **Fast and stable connections**
 - **Firewall-friendly networking** for smoother device discovery
 - **No location permission required on Android** for network discovery  
-    Most LAN-based apps request location access due to how Android handles Wi-Fi scanning. This app avoids that by using a more efficient and reliable method—no data is collected or sent externally.
+    Most LAN-based apps request location access due to how Android handles Wi-Fi scanning. This app avoids that by using a less efficient and reliable method—no data is collected or sent externally.
 
 ### 🧪 Project Scope
 
