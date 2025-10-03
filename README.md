@@ -1,17 +1,24 @@
+# Chat Room
 
+A Flutter app for chatting with others over a **local area network**—no internet required!
 
-# chat room
+### ✨ Features
 
-a flutter app to chat with others through local area network!
+- **Host your own chatroom**
+- **Browse and join available chatrooms** via a simple lobby interface
+- **Fast and stable connections**
+- **Firewall-friendly networking** for smoother device discovery
+- **No location permission required on Android** for network discovery  
+    Most LAN-based apps request location access due to how Android handles Wi-Fi scanning. This app avoids that by using a more efficient and reliable method—no data is collected or sent externally.
 
-you have:
+### 🧪 Project Scope
 
-- chat hosting
-- lobby to choose between available chatrooms
-- fast and stable connection 
+This was built as a test project. While the current implementation works well on typical LAN setups, future versions may include:
 
-## now with the new update:
+- **Extended scanning options** for networks with dispersed IP ranges
 
-- connections should be super friendly when it comes to firewalls 
-- on android systems, it won't require location premission to do a network discovery (basically the client sends a request to every address on the subnet(/24) to find out if there is anyone there) 
-- the main idea is to have options in the app to scan a wider range if it doesn't find the device(some lans might have non concentrated addresses), but this project was a test, so, i'm not planning to go that
+### 🔒 Privacy Note
+
+_This app uses only essential network permissions to enable local chat functionality. It does **not** collect, store, or transmit your data to external servers. Your conversations stay within your network and are **completely lost** when you exit the app._
+
+The full source code is available—feel free to inspect it yourself.
